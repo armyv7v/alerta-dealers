@@ -1,0 +1,29 @@
+# Sistema / IDE / herramientas de sesión
+.idea/
+.vscode/
+.agents/
+.zcode/
+.atl/
+.engram/
+.claude/
+
+# Logs y temporales
+*.log
+scratch/
+tmp/
+
+# Dependencias y builds
+node_modules/
+dist/
+build/
+
+# Entornos y secretos
+.env
+.env.*
+!.env.example
+
+# Estado local de Firebase CLI
+.firebase/
+
+# Repositorio git independiente (se versiona por separado)
+autored_coquimbo/
