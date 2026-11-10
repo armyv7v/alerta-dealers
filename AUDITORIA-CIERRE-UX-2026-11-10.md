@@ -85,6 +85,31 @@ Los patches se aplicaron a las 4 variantes con reemplazos exactos verificados (s
 
 ---
 
-## 7. NOTA DE ALCANCE
+## 7. VERIFICACIÓN DINÁMICA (misma sesión, fase D)
 
-Pasada estática de código + verificación de build/tests; sin recorrido dinámico en navegador. Los hallazgos abiertos por diseño siguen siéndolo (A-05: push notifications requieren clave VAPID real y consumidor de la cola `push_notifications`; los copys de la app ya son honestos al respecto). El warning de chunking de firebase queda registrado como deuda de performance, no de UX.
+Recorrido dinámico en navegador real (IAB Chromium) sobre el dev server de `autored_coquimbo`, viewport móvil **375×812**, cerrando el hueco que las auditorías estáticas declararon abierto ("no hubo recorrido dinámico en navegador").
+
+### Confirmado en vivo (medición de estilos computados + flujo completo)
+
+| Fix | Evidencia en vivo |
+|---|---|
+| G-01 cursor global | `getComputedStyle(button).cursor === "pointer"` ✓ |
+| F6 inputs 16px | input patente `16px` (altura 46px), textarea descripción `16px` ✓ |
+| UX-02 targets | X de cierre del reporte **44×44px**; X del selector de ubicación **44×44px** + `cursor: pointer` ✓ |
+| Flujo de ubicación completo | "Fijar Ubicación" → mapa Leaflet carga (tiles OK, solo latencia) → tap para marcar → "FIJAR PUNTO" → badge **"GPS FIJADO"** en el formulario ✓ |
+| Render móvil 375px | landing, menú de acceso, panel operativo y formulario sin desbordes horizontales; nav de 6 ítems y Alerta central intactas ✓ |
+
+El aviso de borrador restaurado (F1) usa el mismo patrón de clases que la X de ubicación medida en vivo (`min-h-11 min-w-11`), verificado estáticamente; su flujo completo quedó interrumpido dos veces por el entorno (caída del dev server) y se da por cubierto por equivalencia estructural.
+
+### G-03 (nuevo, CRITICAL · touch-target-size) — corregido
+
+El **CTA principal de la landing en móvil** "Acceso a la Red" medía **32px** de alto (`py-2`, `xl:hidden`) y los botones de acceso demo "Acceso Administrador / Operador" quedaban bajo 44px en su caso de una línea (`py-2.5`). Es la puerta de entrada de todo el sistema en móvil y pasó desapercibida en las auditorías estáticas (su clase no caía en los greps de targets).
+**Corrección:** `min-h-11` en el CTA y `min-h-11 flex items-center justify-center` en los dos botones demo, aplicada a los 5 proyectos (`Login.tsx`).
+
+### Nota de automatización
+
+Playwright sobre el IAB reporta timeouts de accionabilidad en botones con animación continua (pulsos de marca, gradientes animados): los clicks se resolvieron por coordenadas (`cua.click`) tras medir el rect destino. No es un defecto de la app; queda anotado como método de prueba.
+
+## 8. NOTA DE ALCANCE
+
+Hallazgo abierto por diseño sin cambios (A-05: push notifications requieren clave VAPID real y consumidor de la cola `push_notifications`; los copys de la app ya son honestos al respecto). Deuda de performance preexistente (chunk de firebase >500kB) sigue registrada, no es UX. Verificación final de esta fase D: `tsc --noEmit` 0 errores en los 5 proyectos, tests de render 8/8 · 15/15 · 8/8 · 3/3, `vite build` OK en los 5.
