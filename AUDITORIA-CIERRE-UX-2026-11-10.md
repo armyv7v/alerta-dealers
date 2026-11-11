@@ -110,6 +110,46 @@ El **CTA principal de la landing en móvil** "Acceso a la Red" medía **32px** d
 
 Playwright sobre el IAB reporta timeouts de accionabilidad en botones con animación continua (pulsos de marca, gradientes animados): los clicks se resolvieron por coordenadas (`cua.click`) tras medir el rect destino. No es un defecto de la app; queda anotado como método de prueba.
 
-## 8. NOTA DE ALCANCE
+## 9. FASE E — AUDITORÍA DE CONTRASTE MEDIDO + DESKTOP (misma sesión)
+
+Cierre del backlog P1: **contraste WCAG 2.1 medido sobre la app corriendo** (no estimado por clases) y **verificación desktop 1440×900 de las 5 apps**, usando un scanner propio (`_qa-browser/scan.js`, playwright-core + Chrome del sistema) que resuelve colores computados en `oklab/oklch` (formato de Tailwind v4), pliega alfa por capas de fondo, interpreta gradientes (peor endpoint) y detecta targets táctiles <44px y overflow horizontal.
+
+### Matriz escaneada (21 casos)
+
+Main (landing/panel/form/feed/flash/admin, móvil 375 + desktop 1440) + 4 variantes light (landing y panel desktop). Sin overflow horizontal en ninguna superficie; 0 errores JS de render.
+
+### G-04 (nuevo, HIGH · color-contrast) — 9 patrones corregidos
+
+La pasada midió lo que las auditorías estáticas estimaron: labels operativos por debajo de 4.5:1 sobre las tarjetas tácticas. Corregidos en los 5 proyectos, un paso de luminosidad cada uno (ratios verificados tras el fix):
+
+| Elemento | Antes | Después | Ratio final |
+|---|---|---|---|
+| Eyebrow rojo de TacticalActionCard ("Reporte Sospechoso") | text-red-400 (2.85) | **text-red-200** | 5.6 |
+| Eyebrow sky ("Fiscalización") | text-sky-400 (3.77) | **text-sky-300** | 5.0 |
+| Eyebrow emerald ("Inventario") | text-emerald-400 (4.24) | **text-emerald-300** | 5.0 |
+| Labels de stats ("Alertas Activas"…) | text-slate-400 (3.12) | **text-slate-300** | 5.6 |
+| Banner "Habilitá las notificaciones…" (sobre navy) | text-slate-500 (3.74) | **text-slate-400** | 5.2 |
+| Subtítulo "Módulos tácticos…" (sobre página clara) | text-slate-500 (4.09) | **text-slate-600** | 6.6 |
+| Botón "Ver Historial" (sobre página clara) | text-slate-500 (4.09) | **text-slate-600** | 6.6 |
+| "Credenciales activas" (sobre gradiente rojo) | text-white/80 (3.44) | **text-white** | 5.8 |
+| Label "Red Privada entre Automotoras" (sobre slate-100) | text-slate-500 (4.35) | **text-slate-600** | 7.0 |
+
+Amber-400 del eyebrow "Prueba en Ruta" ya medía 4.9 ✓ y no se tocó.
+
+### G-05 (nuevo, MEDIUM · touch-target + aria-label) — corregido
+
+El **micrófono de dictado del textarea** del reporte de incidentes medía **32×32px sin aria-label** (solo title) — el único control del formulario crítico que sobrevivió al barrido de 44px porque su clase `p-2` no caía en los greps. También el botón **"Comandos ⌘K"** del navbar medía 40×28. Ambos suben a `min-h-11` y el micrófono recibe `aria-label="Dictar por voz"`, aplicado a los 5 proyectos (tema oscuro respetado en integration).
+
+### Decorativos aceptados (documentados, no deuda)
+
+- Número de marca de agua "01/02/03" de las tarjetas del carrusel (1.6:1): elemento decorativo por diseño, no portador de información.
+- Texto del botón "Transmitir Reporte a la Red" en estado **disabled** (exento por WCAG 1.4.3).
+- Hints de teclado ⌘K/↑/↓ a 10px: decoración de escritorio.
+
+### Resultado final del scan de verificación
+
+Panel desktop: **6 fails → 0** · Form móvil: 7 → 1 (solo el disabled) + touch 2 → 0 · Landing desktop: 3 → 1 (solo la marca de agua). Verificación de compilación en los 5 proyectos: `tsc` 0 errores, tests 8/8 · 15/15 · 8/8 · 3/3, `vite build` OK. El scanner queda versionado como herramienta reutilizable (`_qa-browser/`) para futuras pasadas de contraste medido.
+
+## 10. NOTA DE ALCANCE
 
 Hallazgo abierto por diseño sin cambios (A-05: push notifications requieren clave VAPID real y consumidor de la cola `push_notifications`; los copys de la app ya son honestos al respecto). Deuda de performance preexistente (chunk de firebase >500kB) sigue registrada, no es UX. Verificación final de esta fase D: `tsc --noEmit` 0 errores en los 5 proyectos, tests de render 8/8 · 15/15 · 8/8 · 3/3, `vite build` OK en los 5.
