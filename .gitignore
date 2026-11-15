@@ -28,8 +28,6 @@ build/
 # Repositorio git independiente (se versiona por separado)
 autored_coquimbo/
 
-# Repositorios git independientes (se versionan por separado)
-autored_coquimbo-light-operations/
-autored_coquimbo-light-incident-badge/
-autored_coquimbo-light-incident-integration/
-autored_coquimbo-light-incident-sheet/
+# Evidencia de QA regenerable (_qa-browser: scripts sí versionados)
+_qa-browser/out/
+_qa-browser/shots/
