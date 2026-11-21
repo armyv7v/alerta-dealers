@@ -220,8 +220,23 @@ const SCAN = () => {
 
   if (actionsJson) {
     for (const a of JSON.parse(actionsJson)) {
-      if (a.click) { await page.click(`text=${a.click}`, { timeout: 4000, force: true }).catch(e => consoleErrors.push('click-fallo: ' + a.click)); }
+      if (a.click) {
+        // Triple fallback: text= → role/name → click por coordenadas. Los
+        // botones con animación continua (pulsos de marca, gradientes)
+        // rechazan clicks sintéticos aun con force (lección fase D/E).
+        const ok1 = await page.click(`text=${a.click}`, { timeout: 4000, force: true }).then(() => true).catch(() => false);
+        if (!ok1) {
+          const loc = page.getByRole('button', { name: a.click }).first();
+          const ok2 = await loc.click({ timeout: 4000, force: true }).then(() => true).catch(() => false);
+          if (!ok2) {
+            const box = await loc.boundingBox().catch(() => null);
+            if (box) { await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2); }
+            else consoleErrors.push('click-fallo: ' + a.click);
+          }
+        }
+      }
       if (a.fill) { await page.fill(a.fill.sel, a.fill.val, { timeout: 4000 }).catch(e => consoleErrors.push('fill-fallo')); }
+      if (a.press) { await page.press(a.press.sel, a.press.key, { timeout: 4000 }).catch(() => consoleErrors.push('press-fallo')); }
       if (a.scrollY) { await page.mouse.wheel(0, a.scrollY); }
       if (a.wait) await page.waitForTimeout(a.wait);
     }
