@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tab bar con sliding highlight — CSS Anchor Positioning</title>
+<style>
+  /* ============================================================
+     Demo: tab bar con highlight deslizante vía CSS Anchor Positioning
+     Patrón: guía "anchor-positioning-tab-underline" + "tabs"
+     (modern-web-guidance — GoogleChrome/modern-web-guidance)
+     ============================================================ */
+
+  :root {
+    --accent: #4f46e5;
+    --accent-soft: #eef2ff;
+    --ink: #0f172a;
+    --ink-soft: #475569;
+    --line: #e2e8f0;
+    --surface: #ffffff;
+    --bg: #f8fafc;
+    color-scheme: light;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    background: var(--bg);
+    color: var(--ink);
+  }
+
+  .card {
+    width: min(46rem, 100%);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 10px 30px rgb(15 23 42 / 0.06);
+  }
+
+  h1 { font-size: 1.15rem; margin: 0 0 0.25rem; }
+  .card > p { margin: 0 0 1.25rem; color: var(--ink-soft); font-size: 0.875rem; }
+
+  /* ---------- Tablist ---------- */
+
+  /* Contenedor relativo: es el bloque contenedor del indicador absoluto. */
+  .tablist {
+    position: relative;
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+    background: var(--bg);
+    overflow-x: auto;
+  }
+
+  .tab {
+    flex: none;
+    appearance: none;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    padding: 0.625rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    position: relative; /* para el fallback ::after, que no cambia dimensiones */
+  }
+
+  .tab:hover { color: var(--ink); background: var(--accent-soft); }
+
+  .tab:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* El estado visual nace del estado accesible: nunca pueden discrepar. */
+  .tab[aria-selected="true"] {
+    color: var(--accent);
+    background: var(--surface);
+
+    /* Anchor Positioning: el tab seleccionado ES el ancho `--active`.
+       Al moverse el anchor-name, el indicador del tablist lo sigue. */
+    anchor-name: --active;
+  }
+
+  /* ---------- Indicador deslizante ---------- */
+
+  /* Pseudo-elemento del CONTENEDOR (DOM limpio, cero elementos decorativos).
+     Reglas de la guía:
+     - position-area NO: no se puede transicionar.
+     - Se dibuja con border, no con background/box-shadow: forced-colors
+       elimina esos dos y dejaría sin indicador a usuarios de alto contraste.
+     - La transición vive dentro de prefers-reduced-motion (obligatorio). */
+  .tablist::before {
+    content: "";
+    position: absolute;
+    position-anchor: --active;
+    inset-block-start: calc(anchor(bottom) - 0.25rem);
+    inset-inline-start: anchor(left);
+    inset-inline-end: anchor(right);
+    border-block-end: 3px solid var(--accent);
+    border-radius: 3px;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .tablist::before {
+      transition: inset 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+
+  /* Fallback (navegadores sin Anchor Positioning): subrayado estático en el
+     tab seleccionado, vía ::after para no alterar sus dimensiones. */
+  @supports not (position-anchor: auto) {
+    .tab[aria-selected="true"]::after {
+      content: "";
+      position: absolute;
+      inset: auto 0.5rem calc(-0.25rem);
+      border-block-end: 3px solid var(--accent);
+      border-radius: 3px;
+    }
+    .tablist::before { display: none; }
+  }
+
+  /* ---------- Paneles ---------- */
+
+  /* Todos los paneles comparten la misma celda: los ocultos con
+     hidden="until-found" siguen participando del layout y un gap
+     abriría franjas vacías por cada panel oculto. */
+  .panels { display: grid; }
+  .panels > .panel { grid-area: 1 / 1; }
+
+  /* El panel en sí no lleva padding/borde/fondo: con hidden="until-found"
+     renderizarían una franja vacía. Todo va en el wrapper interno. */
+  .panel > div {
+    padding: 1.25rem 0.25rem 0.25rem;
+    color: var(--ink-soft);
+    font-size: 0.925rem;
+    line-height: 1.65;
+  }
+  .panel > div strong { color: var(--ink); }
+  .panel code {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.825em;
+    background: var(--accent-soft);
+    border-radius: 0.3rem;
+    padding: 0.1em 0.35em;
+    color: var(--accent);
+  }
+
+  .footnote {
+    margin-top: 1.25rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Tab bar con highlight deslizante</h1>
+    <p>El subrayado se ancla al tab activo con <code>anchor()</code>: al cambiar de tab, <code>anchor-name: --active</code> se mueve y el indicador se desliza solo con una transición de <code>inset</code>. Sin JavaScript midiendo posiciones.</p>
+
+    <!-- focusgroup="tablist nomemory": en navegadores con soporte asigna los
+         roles tablist/tab y el roving focus nativo; `nomemory` hace que el
+         foco que ENTRA al grupo aterrice en el tab seleccionado
+         (focusgroupstart), no en el último que tuvo foco.
+         En el resto, el JS de abajo implementa el mismo contrato. -->
+    <div class="tablist" role="tablist" focusgroup="tablist nomemory" aria-label="Demo de técnicas">
+      <button class="tab" type="button" role="tab" id="tab-overview" aria-selected="true" focusgroupstart tabindex="0">Overview</button>
+      <button class="tab" type="button" role="tab" id="tab-anchor" aria-selected="false" tabindex="-1">Anchor</button>
+      <button class="tab" type="button" role="tab" id="tab-motion" aria-selected="false" tabindex="-1">Animación</button>
+      <button class="tab" type="button" role="tab" id="tab-a11y" aria-selected="false" tabindex="-1">Accesibilidad</button>
+      <button class="tab" type="button" role="tab" id="tab-fallback" aria-selected="false" tabindex="-1">Fallback</button>
+    </div>
+
+    <!-- Estado inicial renderizado en el HTML (obligatorio): paneles no
+         seleccionados con hidden="until-found" siguen siendo alcanzables
+         por el buscar-en-página, que dispara beforematch y sincroniza. -->
+    <div class="panels">
+      <div class="panel" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
+        <div>
+          <strong>Overview.</strong> CSS Anchor Positioning permite atar un elemento a otro
+          declarativamente con <code>anchor-name</code> y <code>position-anchor</code>. Aquí el
+          tab activo declara <code>anchor-name: --active</code> y el pseudo-elemento del
+          contenedor se ancla a él con <code>anchor(left)</code> y <code>anchor(right)</code>.
+          El <em>sliding highlight</em> es una transición de <code>inset</code>: cuando el
+          anchor-name cambia de tab, el navegador interpola las posiciones — sin una línea
+          de JS midiendo rects.
+        </div>
+      </div>
+      <div class="panel" role="tabpanel" aria-labelledby="tab-anchor" hidden="until-found">
+        <div>
+          <strong>El ancla.</strong> Solo puede haber un elemento con <code>anchor-name: --active</code>,
+          así que el nombre viaja con la selección. El indicador usa
+          <code>position-anchor: --active</code> y se ubica con
+          <code>inset-inline-start: anchor(left)</code> / <code>inset-inline-end: anchor(right)</code>:
+          su ancho siempre es el del tab anclado, esté donde esté.
+          La guía manda <em>no</em> usar <code>position-area</code> — no se puede transicionar.
+        </div>
+      </div>
+      <div class="panel" role="tabpanel" aria-labelledby="tab-motion" hidden="until-found">
+        <div>
+          <strong>Animación.</strong> La transición de <code>inset</code> vive dentro de
+          <code>@media (prefers-reduced-motion: no-preference)</code>: quien pide menos movimiento
+          en el SO ve el cambio instantáneo. Y quien navega con teclado (flechas, que seleccionan
+          al enfocar) ve el mismo deslizamiento suave que quien hace click.
+        </div>
+      </div>
+      <div class="panel" role="tabpanel" aria-labelledby="tab-a11y" hidden="until-found">
+        <div>
+          <strong>Accesibilidad.</strong> El highlight es decorativo: el estado real vive en
+          <code>aria-selected</code>, y el CSS se aplica <em>desde ese atributo</em> — visual y
+          accesible nunca discrepan. El indicador se dibuja con <code>border</code> porque
+          forced-colors elimina background y box-shadow. Flechas ←/→ mueven y seleccionan;
+          <kbd>Home</kbd>/<kbd>End</kbd> saltan a los extremos; el foco que entra al grupo
+          aterriza en el tab seleccionado.
+        </div>
+      </div>
+      <div class="panel" role="tabpanel" aria-labelledby="tab-fallback" hidden="until-found">
+        <div>
+          <strong>Fallback.</strong> Donde no hay Anchor Positioning, un
+          <code>@supports not (position-anchor: auto)</code> dibuja el subrayado estático en el
+          tab seleccionado (vía <code>::after</code>, sin cambiar sus dimensiones) y oculta el
+          indicador deslizante. La interfaz queda 100% funcional — solo pierde el deslizamiento.
+          <span id="support-note"></span>
+        </div>
+      </div>
+    </div>
+
+    <p class="footnote" id="mode-note"></p>
+  </main>
+
+<script>
+  // Selección con sincronización completa del estado accesible + visual.
+  const tablist = document.querySelector('.tablist');
+  const tabs = [...tablist.querySelectorAll('.tab')];
+  const panels = [...document.querySelectorAll('.panel')];
+
+  function select(tab) {
+    for (const [i, t] of tabs.entries()) {
+      const selected = t === tab;
+      t.setAttribute('aria-selected', String(selected));
+      t.tabIndex = selected ? 0 : -1;           // roving tabindex
+      t.toggleAttribute('focusgroupstart', selected); // foco entrante → seleccionado
+      // La propiedad IDL `hidden` es booleana: hidden = 'until-found' la
+      // degradaría a hidden="" y el panel saldría del buscar-en-página.
+      // El valor until-found solo se conserva vía el atributo de contenido.
+      if (selected) panels[i].removeAttribute('hidden');
+      else panels[i].setAttribute('hidden', 'until-found');
+      panels[i].tabIndex = selected ? 0 : -1;
+    }
+    // Si la tablist alguna vez desborda, el seleccionado siempre a la vista.
+    tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+
+  // Click / Enter / Espacio (los <button> ya dan Enter/Espacio nativo).
+  tablist.addEventListener('click', (e) => {
+    const tab = e.target.closest('.tab');
+    if (tab) select(tab);
+  });
+
+  // Fallback de teclado para navegadores sin focusgroup: selección sigue al
+  // foco (mismo contrato que el comportamiento nativo tablist de focusgroup).
+  tablist.addEventListener('keydown', (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const i = tabs.indexOf(e.target.closest('.tab'));
+    if (i < 0) return;
+    let next = null;
+    switch (e.key) {
+      case 'ArrowRight': next = tabs[(i + 1) % tabs.length]; break;
+      case 'ArrowLeft':  next = tabs[(i - 1 + tabs.length) % tabs.length]; break;
+      case 'Home':       next = tabs[0]; break;
+      case 'End':        next = tabs[tabs.length - 1]; break;
+      default: return;
+    }
+    e.preventDefault();
+    next.focus();
+    select(next);
+  });
+
+  // Find-in-page sobre un panel oculto (hidden="until-found") lo revela:
+  // sincronizamos la selección con el tab correspondiente.
+  for (const [i, panel] of panels.entries()) {
+    panel.addEventListener('beforematch', () => select(tabs[i]));
+  }
+
+  // Nota honesta de soporte, según el camino que esté corriendo el navegador.
+  const supported = CSS.supports('position-anchor: auto');
+  document.getElementById('mode-note').textContent = supported
+    ? '✓ Este navegador soporta Anchor Positioning: el highlight se desliza entre tabs.'
+    : '• Este navegador no soporta Anchor Positioning: activo el subrayado estático del fallback (sin deslizamiento).';
+</script>
+</body>
+</html>
